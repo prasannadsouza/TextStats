@@ -10,5 +10,6 @@ namespace TextStats.ParseLogic.Model
     {
         public string? Word { get; set; }
         public long? Frequency { get; set; }
+
     }
 }

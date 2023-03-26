@@ -11,7 +11,7 @@ namespace TextStats.ParseLogic.Model
 
         public string? CheckSum { get; set; }
         public Guid? Guid { get; set; }
-        public string? FilePath { get; set; }
+        public string? FileName { get; set; }
         public long? NumberOfLines { get; set; }
         public long? NumberOfWords { get; set; }
         public List<WordFrequency>? WordFrequencies { get; set; }
