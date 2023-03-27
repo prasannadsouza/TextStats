@@ -3,6 +3,7 @@ using Microsoft.Extensions.Logging;
 using System;
 using System.ComponentModel.DataAnnotations;
 using System.IO;
+using System.Linq;
 using System.Net.Http.Headers;
 using System.Reflection.Metadata.Ecma335;
 using System.Runtime.CompilerServices;
@@ -163,7 +164,7 @@ public class TextStatistics
                     {
                         var fileContents = new byte[BUFFERSIZE];
                         bytesToRead = await bs.ReadAsync(fileContents, 0, BUFFERSIZE);
-                        var text = lastword + Encoding.Default.GetString(fileContents);
+                        var text = lastword + Encoding.Default.GetString(fileContents.Take(bytesToRead).ToArray());
 
                         var tempWords = GetWords(text);
                         if (tempWords.Count > 0)
@@ -175,14 +176,27 @@ public class TextStatistics
                         {
                             lastword = string.Empty;
                         }
-                        TextFile!.NumberOfLines = tempWords.Count(e => e == Environment.NewLine);
+                      
+                        TextFile!.NumberOfLines += GetNewLines(string.Join("", tempWords));
+
+
                         UpdateWordFrequencies(tempWords);
                         _logger.LogInformation($"Processed {bs.Position}/{bs.Length}, Lines: {TextFile!.NumberOfLines}, Words: {TextFile!.WordFrequencies!.Count}");
                     }
+                    if (string.IsNullOrWhiteSpace(lastword) == false) UpdateWordFrequencies(new List<string> { lastword });
                 }
             }
+            TextFile!.NumberOfLines += 1;
             _logger.LogInformation($"TotalTime to Parse with BufferedStream, File: {Path.GetFileName(filePath)}, {(DateTime.Now - startTime).TotalSeconds}s ");
             
+        }
+
+        private int GetNewLines(string text)
+        {
+            var countOfN = text.Count(e => e == '\n');
+            if (countOfN > 0) return countOfN;
+
+            return text.Count(e => e == '\r');
         }
 
         private void UpdateWordFrequencies(List<string> tempWords)
@@ -305,9 +319,12 @@ public class TextStatistics
             var statistics = GetSavedStatistics();
             if (statistics == null) statistics = new List<TextFile>();
 
+            statistics.RemoveAll(e => e.CheckSum == statistic.CheckSum);
+
             var wordFrequencies = statistic!.WordFrequencies;
 
-            if (statistic!.WordFrequencies?.Count > 0) Utility.Serialize(wordFrequencies, Path.Combine(Utility.GetBaseFolderPath(), statistic!.Guid!.ToString()!, WordFreQuency_FileName));
+            if (statistic!.WordFrequencies?.Count > 0) Utility.Serialize(wordFrequencies,
+                Path.Combine(Utility.GetBaseFolderPath(), statistic!.Guid!.ToString()!, WordFreQuency_FileName));
 
             statistic.WordFrequencies = null;
             statistics.Add(statistic);
